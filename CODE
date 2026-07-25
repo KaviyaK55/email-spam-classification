@@ -1,0 +1,105 @@
+
+Step 1: Setting up Google Colab
+1. *Open Google Colab*: Go to [Google Colab](https://colab.research.google.com/).
+2. *Create a New Notebook*: Click on "File" > "New Notebook".
+Step 2: Data Preparation
+1. *Load the Dataset*: Use the popular "Spam/Ham" dataset. You can download it from [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/sms+spam+collection) or use other similar datasets.
+2. *Upload the Dataset to Colab*:
+python
+from google.colab import files
+uploaded = files.upload()
+3. *Read the Dataset*:
+python
+import pandas as pd
+df = pd.read_csv('spam.csv', encoding='latin-1')
+df = df[['v1', 'v2']]
+df.columns = ['label', 'message']
+Step 3: Data Preprocessing
+1. *Label Encoding*:
+python
+df['label'] = df['label'].map({'ham': 0, 'spam': 1})
+2. *Text Preprocessing*:
+python
+import nltk
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+import re
+ps = PorterStemmer()
+all_stopwords = stopwords.words('english')
+all_stopwords.remove('not')
+def preprocess_text(text):
+text = re.sub('[^a-zA-Z]', ' ', text)
+text = text.lower()
+text = text.split()
+text = [ps.stem(word) for word in text if not word in set(all_stopwords)]
+text = ' '.join(text)
+return text
+df['message'] = df['message'].apply(preprocess_text)
+Step 4: Model Training
+1. *Split the Dataset*:
+python
+from sklearn.model_selection import train_test_split
+X = df['message']
+y = df['label']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+2. *Feature Extraction*:
+python
+from sklearn.feature_extraction.text import CountVectorizer
+cv = CountVectorizer(max_features=2500)
+X_train = cv.fit_transform(X_train).toarray()
+X_test = cv.transform(X_test).toarray()
+3. *Training the Model*:
+python
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+classifier = MultinomialNB()
+classifier.fit(X_train, y_train)
+y_pred = classifier.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+cm = confusion_matrix(y_test, y_pred)
+cr = classification_report(y_test, y_pred)
+print("Accuracy:", accuracy)
+print("Confusion Matrix:\n", cm)
+print("Classification Report:\n", cr)
+Step 5: Saving the Model and Vectorizer
+1. *Save the Model and Vectorizer*:
+python
+import joblib
+joblib.dump(classifier, 'spam_classifier.pkl')
+joblib.dump(cv, 'count_vectorizer.pkl')
+2. *Download the Saved Files*:
+python
+from google.colab import files
+files.download('spam_classifier.pkl')
+files.download('count_vectorizer.pkl')
+Step 6: Setting up Streamlit
+1. *Install Streamlit*:
+sh
+pip install streamlit
+2. *Create a Streamlit App*:
+Create a new Python file, e.g., app.py.
+3. *Streamlit App Code*:
+python
+import streamlit as st
+import joblib
+# Load the model and vectorizer
+classifier = joblib.load('spam_classifier.pkl')
+cv = joblib.load('count_vectorizer.pkl')
+st.title('Email Spam Classifier')
+user_input = st.text_area('Enter the email text here')
+if st.button('Classify'):
+if user_input:
+user_input = [user_input]
+user_input = cv.transform(user_input).toarray()
+prediction = classifier.predict(user_input)
+result = 'Spam' if prediction == 1 else 'Not Spam'
+st.write(f'The email is: {result}')
+else:
+st.write('Please enter the email text.')
+Step 7: Deploy the Streamlit App
+1. *Run Streamlit Locally*:
+sh
+streamlit run app.py
+2. *Deploy Streamlit App*:
+Deploy your Streamlit app.
